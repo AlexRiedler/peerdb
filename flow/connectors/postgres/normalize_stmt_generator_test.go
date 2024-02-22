@@ -24,6 +24,7 @@ func TestGenerateMergeUpdateStatement(t *testing.T) {
 			SyncedAtColName:   "_peerdb_synced_at",
 			SoftDeleteColName: "_peerdb_soft_delete",
 		},
+    dialect: PostgresDialectRegular,
 	}
 	result := normalizeGen.generateUpdateStatements(allCols)
 
@@ -56,6 +57,7 @@ func TestGenerateMergeUpdateStatement_WithSoftDelete(t *testing.T) {
 			SyncedAtColName:   "_peerdb_synced_at",
 			SoftDeleteColName: "_peerdb_soft_delete",
 		},
+    dialect: PostgresDialectRegular,
 	}
 	result := normalizeGen.generateUpdateStatements(allCols)
 
@@ -90,6 +92,7 @@ func TestGenerateMergeUpdateStatement_WithUnchangedToastCols(t *testing.T) {
 			SyncedAtColName:   "_peerdb_synced_at",
 			SoftDeleteColName: "_peerdb_soft_delete",
 		},
+    dialect: PostgresDialectRegular,
 	}
 	result := normalizeGen.generateUpdateStatements(allCols)
 
@@ -134,6 +137,7 @@ func TestGenerateMergeUpdateStatement_WithUnchangedToastColsAndSoftDelete(t *tes
 			SyncedAtColName:   "_peerdb_synced_at",
 			SoftDeleteColName: "_peerdb_soft_delete",
 		},
+    dialect: PostgresDialectRegular,
 	}
 	result := normalizeGen.generateUpdateStatements(allCols)
 

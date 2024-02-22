@@ -26,6 +26,13 @@ const (
 	POSTGRES_15 PGVersion = 150000
 )
 
+type PostgresDialect string
+
+const (
+    PostgresDialectRegular PostgresDialect = "Regular"
+    PostgresDialectRedshift PostgresDialect = "Redshift"
+)
+
 const (
 	mirrorJobsTableIdentifier = "peerdb_mirror_jobs"
 	createMirrorJobsTableSQL  = `CREATE TABLE IF NOT EXISTS %s.%s(mirror_job_name TEXT PRIMARY KEY,
@@ -526,6 +533,20 @@ func majorVersionCheck(ctx context.Context, conn *pgx.Conn, majorVersion PGVersi
 
 func (c *PostgresConnector) MajorVersionCheck(ctx context.Context, majorVersion PGVersion) (bool, int64, error) {
 	return majorVersionCheck(ctx, c.conn, majorVersion)
+}
+
+func (c *PostgresConnector) determinePostgresDialect(ctx context.Context) (PostgresDialect, error) {
+  var version string
+  err := c.conn.QueryRow(ctx, "SELECT version()").Scan(&version)
+  if err != nil {
+    return PostgresDialectRegular, fmt.Errorf("failed to run version() to determine dialect: %w", err)
+  }
+
+  if strings.Contains(version, "Redshift") {
+    return PostgresDialectRedshift, nil
+  } else {
+    return PostgresDialectRegular, nil
+  }
 }
 
 func (c *PostgresConnector) updateSyncMetadata(ctx context.Context, flowJobName string, lastCP int64, syncBatchID int64,

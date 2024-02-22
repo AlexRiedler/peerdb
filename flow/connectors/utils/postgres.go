@@ -34,6 +34,7 @@ func GetPGConnectionString(pgConfig *protos.PostgresConfig) string {
 }
 
 func GetCustomDataTypes(ctx context.Context, conn *pgx.Conn) (map[uint32]string, error) {
+  // TODO: this query is empty for redshift (no custom types supported)
 	rows, err := conn.Query(ctx, `
 		SELECT t.oid, t.typname as type
 		FROM pg_type t

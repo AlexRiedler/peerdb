@@ -585,6 +585,10 @@ func (c *PostgresConnector) NormalizeRecords(ctx context.Context, req *model.Nor
 	if err != nil {
 		return nil, err
 	}
+  postgresDialect, err := c.determinePostgresDialect(ctx)
+	if err != nil {
+		return nil, err
+	}
 	mergeStatementsBatch := &pgx.Batch{}
 	totalRowsAffected := 0
 	for _, destinationTableName := range destinationTableNames {
@@ -599,6 +603,7 @@ func (c *PostgresConnector) NormalizeRecords(ctx context.Context, req *model.Nor
 				SoftDelete:        req.SoftDelete,
 			},
 			supportsMerge:  supportsMerge,
+      dialect:        postgresDialect,
 			metadataSchema: c.metadataSchema,
 			logger:         c.logger,
 		}

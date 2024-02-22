@@ -27,6 +27,8 @@ type normalizeStmtGenerator struct {
 	supportsMerge bool
 	// Postgres metadata schema
 	metadataSchema string
+  // Postgres dialect
+  dialect PostgresDialect
 	// to log fallback statement selection
 	logger log.Logger
 }
@@ -53,18 +55,33 @@ func (n *normalizeStmtGenerator) generateFallbackStatements() []string {
 		quotedCol := QuoteIdentifier(column.Name)
 		stringCol := QuoteLiteral(column.Name)
 		columnNames = append(columnNames, quotedCol)
-		pgType := qValueKindToPostgresType(genericColumnType)
-		if qvalue.QValueKind(genericColumnType).IsArray() {
-			flattenedCastsSQLArray = append(flattenedCastsSQLArray,
-				fmt.Sprintf("ARRAY(SELECT * FROM JSON_ARRAY_ELEMENTS_TEXT((_peerdb_data->>%s)::JSON))::%s AS %s",
-					stringCol, pgType, quotedCol))
-		} else {
-			flattenedCastsSQLArray = append(flattenedCastsSQLArray, fmt.Sprintf("(_peerdb_data->>%s)::%s AS %s",
-				stringCol, pgType, quotedCol))
-		}
-		if slices.Contains(n.normalizedTableSchema.PrimaryKeyColumns, column.Name) {
-			primaryKeyColumnCasts[column.Name] = fmt.Sprintf("(_peerdb_data->>%s)::%s", stringCol, pgType)
-		}
+    pgType := qValueKindToPostgresType(genericColumnType)
+
+    if (n.dialect == PostgresDialectRegular) {
+      if qvalue.QValueKind(genericColumnType).IsArray() {
+        flattenedCastsSQLArray = append(flattenedCastsSQLArray,
+        fmt.Sprintf("ARRAY(SELECT * FROM JSON_ARRAY_ELEMENTS_TEXT((_peerdb_data->>%s)::JSON))::%s AS %s",
+        stringCol, pgType, quotedCol))
+      } else {
+        flattenedCastsSQLArray = append(flattenedCastsSQLArray, fmt.Sprintf("(_peerdb_data->>%s)::%s AS %s",
+        stringCol, pgType, quotedCol))
+      }
+      if slices.Contains(n.normalizedTableSchema.PrimaryKeyColumns, column.Name) {
+                        primaryKeyColumnCasts[column.Name] = fmt.Sprintf("(_peerdb_data->>%s)::%s", stringCol, pgType)
+      }
+    } else if (n.dialect == PostgresDialectRedshift) {
+      if qvalue.QValueKind(genericColumnType).IsArray() {
+        flattenedCastsSQLArray = append(flattenedCastsSQLArray,
+        fmt.Sprintf("JSON_PARSE(json_extract_path_text(_peerdb_data, '%s'))::%s AS %s",
+        stringCol, pgType, quotedCol))
+      } else {
+        flattenedCastsSQLArray = append(flattenedCastsSQLArray, fmt.Sprintf("json_extract_path_text(_peerdb_data, '%s')::%s AS %s",
+        stringCol, pgType, quotedCol))
+      }
+      if slices.Contains(n.normalizedTableSchema.PrimaryKeyColumns, column.Name) {
+        primaryKeyColumnCasts[column.Name] = fmt.Sprintf("json_extract_path_text(_peerdb_data, '%s')::%s", stringCol, pgType)
+      }
+    }
 	}
 	flattenedCastsSQL := strings.Join(flattenedCastsSQLArray, ",")
 	parsedDstTable, _ := utils.ParseSchemaTable(n.dstTableName)
